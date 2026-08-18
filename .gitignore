@@ -35,3 +35,4 @@ cache/
 .idea/
 .DS_Store
 Thumbs.db
+plugins/spark/tmp/
