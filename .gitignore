@@ -1,0 +1,41 @@
+# Archivos con secretos (¡nunca subir!)
+config.env
+config.json
+starter.py
+.env
+*.env
+
+# Logs
+
+*.log
+logs/
+log_position.txt
+monitor.log
+nohup.out
+*.log.*
+
+# Archivos temporales
+*.tmp
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+starter.py
+starter.py
+starter.py
+log_retriever.py

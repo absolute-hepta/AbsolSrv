@@ -1,0 +1,17 @@
+[
+  {
+    "uuid": "c50af8e4-51f8-37ab-8b0c-c37a86093db5",
+    "name": "fazTzer",
+    "created": "2026-08-09 18:18:37 +0000",
+    "source": "Server",
+    "expires": "forever",
+    "reason": "identificate en el servidor de discord"
+  },
+  {
+    "uuid": "cbc36615-7fcb-3f29-95d5-b55ff8983454",
+    "name": "nikolajetai",
+    "created": "2026-07-31 17:10:07 +0000",
+    "source": "Server",
+    "expires": "forever"
+  }
+]

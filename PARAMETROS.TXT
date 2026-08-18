@@ -1,0 +1,31 @@
+sudo playitd --socket-path /run/playit/playitd.sock
+
+sudo playit --socket-path /run/playit/playitd.sock
+
+java -Xms8G -Xmx12G -Dcom.mojang.eula.agree=true -jar server.jar --nogui --bonusChest
+
+git add -A && git commit -m "Actualización general" && git push origin main
+git commit -m "Changes I" [I]
+git push origin main
+
+git add -A && git commit -m "Actualización general" && git push origin main
+
+curl -fsSL https://packages.playit.gg/install.sh | bash
+
+echo "starter.py" >> .gitignore
+git add .gitignore
+git commit -m "Añadir starter.py a .gitignore"
+git push
+
+
+# Instalar screen (si no lo tienes)
+sudo apt update && sudo apt install screen -y
+
+# Crear una sesión llamada "minecraft"
+screen -S minecraft
+
+# Dentro de la sesión, ejecuta el servidor
+java -Xms12G -Xmx14G -Dcom.mojang.eula.agree=true -jar server.jar --nogui --bonusChest
+
+# Para salir de la sesión sin detener el servidor: Ctrl+A, D
+# Para volver: screen -r minecraft
