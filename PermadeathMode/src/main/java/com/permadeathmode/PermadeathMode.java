@@ -1,6 +1,8 @@
 package com.permadeathmode;
 
 import org.bukkit.*;
+import org.bukkit.advancement.Advancement;
+import org.bukkit.advancement.AdvancementProgress;
 import org.bukkit.block.Block;
 import org.bukkit.block.Chest;
 import org.bukkit.command.CommandSender;
@@ -24,6 +26,9 @@ public class PermadeathMode extends JavaPlugin {
     private boolean autoWeatherEnabled = false;
     private final Map<UUID, Location> pendingRevives = new HashMap<>();
     private final Map<Integer, Long> weatherTimers = new HashMap<>();  // taskId -> start time
+    private final Map<UUID, Integer> reviveCounts = new HashMap<>();  // playerId -> revive count
+    private final Map<UUID, Integer> headCounts = new HashMap<>();  // playerId -> head count
+    private String language = "es";  // Default language
 
     @Override
     public void onEnable() {
@@ -31,6 +36,10 @@ public class PermadeathMode extends JavaPlugin {
         saveDefaultConfig();
         permadeathEnabled = getConfig().getBoolean("permadeath.enabled", false);
         autoWeatherEnabled = getConfig().getBoolean("permadeath.auto-weather", false);
+        language = getConfig().getString("language", "es");
+        
+        // Load statistics
+        loadStatistics();
 
         getCommand("permadeath").setExecutor(new PermadeathCommand());
         getCommand("permadeath").setTabCompleter(new PermadeathTabCompleter());
@@ -82,8 +91,8 @@ public class PermadeathMode extends JavaPlugin {
         if (player == null) {
             return;
         }
-        String title = on ? "§lPermadeath activado" : "§lPermadeath desactivado";
-        String subtitle = on ? "§7La muerte será permanente" : "§7Has vuelto al modo normal";
+        String title = "§l" + getMessage(on ? "permadeath.toggle_on" : "permadeath.toggle_off");
+        String subtitle = "§7" + getMessage(on ? "permadeath.death_permanent" : "permadeath.back_normal");
         player.sendTitle(title, subtitle, 10, 40, 15);
     }
 
@@ -93,7 +102,7 @@ public class PermadeathMode extends JavaPlugin {
             triggerToggleSound(player);
             showToggleTitle(player, on);
         }
-        Bukkit.broadcastMessage(on ? "§6[Permadeath] §7Modo permadeath activado." : "§6[Permadeath] §7Modo permadeath desactivado.");
+        Bukkit.broadcastMessage(ChatColor.GOLD + "[Permadeath] §7" + getMessage(on ? "permadeath.activated" : "permadeath.deactivated"));
     }
 
     public void handleDeath(Player player, String cause, Player killer) {
@@ -108,17 +117,17 @@ public class PermadeathMode extends JavaPlugin {
         pendingRevives.put(player.getUniqueId(), deathLocation.clone());
 
         player.setGameMode(GameMode.SPECTATOR);
-        player.sendTitle("§lHas muerto", "§7El modo permadeath está activo", 10, 60, 20);
+        player.sendTitle("§l" + getMessage("permadeath.you_died"), "§7" + getMessage("permadeath.active"), 10, 60, 20);
         triggerDeathSound(player);
         spawnDeathChest(player, deathLocation, cleanCause, killerName);
 
         String coordText = "X: " + Math.round(deathLocation.getX()) + " Y: " + Math.round(deathLocation.getY()) + " Z: " + Math.round(deathLocation.getZ());
-        String kickMessage = ChatColor.GRAY + "" + ChatColor.BOLD + "Has muerto.\n"
+        String kickMessage = ChatColor.GRAY + "" + ChatColor.BOLD + getMessage("permadeath.you_died") + ".\n"
                 + ChatColor.GRAY + "Causa: " + ChatColor.YELLOW + cleanCause + "\n"
                 + ChatColor.GRAY + "Victimario: " + ChatColor.YELLOW + killerName + "\n"
                 + ChatColor.GRAY + "Coordenadas: " + ChatColor.YELLOW + coordText;
 
-        Bukkit.broadcastMessage(ChatColor.GOLD + "[Permadeath] " + ChatColor.YELLOW + player.getName() + ChatColor.GRAY + " murió en " + ChatColor.YELLOW + coordText);
+        Bukkit.broadcastMessage(ChatColor.GOLD + "[Permadeath] " + ChatColor.YELLOW + player.getName() + ChatColor.GRAY + " " + getMessage("permadeath.died") + " " + ChatColor.YELLOW + coordText);
         Bukkit.getScheduler().scheduleSyncDelayedTask(getInstance(), () -> player.kickPlayer(kickMessage), 5L);
     }
 
@@ -170,7 +179,7 @@ public class PermadeathMode extends JavaPlugin {
             if (headMeta != null) {
                 headMeta.setDisplayName("§c§l" + player.getName() + "'s Head");
                 List<String> headLore = new ArrayList<>();
-                headLore.add("§7El cráneo del difunto");
+                headLore.add("§7" + getMessage("head.lore"));
                 headMeta.setLore(headLore);
                 playerHead.setItemMeta(headMeta);
             }
@@ -239,13 +248,13 @@ public class PermadeathMode extends JavaPlugin {
             return book;
         }
         
-        meta.setDisplayName("§b§l✦ Libro de Resurrección ✦");
+        meta.setDisplayName("§b§l" + getMessage("book.display_name"));
         List<String> lore = new ArrayList<>();
-        lore.add("§c§l>> CLICK DERECHO PARA REVIVIR <<");
+        lore.add("§c§l" + getMessage("book.click_to_revive"));
         lore.add(" ");
-        lore.add("§7Ubicación: §e" + Math.round(location.getX()) + ", " + Math.round(location.getY()) + ", " + Math.round(location.getZ()));
-        lore.add("§7Causa: §c" + cause);
-        lore.add("§7Victimario: §6" + killerName);
+        lore.add("§7" + getMessage("book.location") + " §e" + Math.round(location.getX()) + ", " + Math.round(location.getY()) + ", " + Math.round(location.getZ()));
+        lore.add("§7" + getMessage("book.cause") + " §c" + cause);
+        lore.add("§7" + getMessage("book.killer") + " §6" + killerName);
         lore.add(" ");
         lore.add("§8[MARCA_REVIVE]");  // Marca especial para detección confiable
         meta.setLore(lore);
@@ -313,15 +322,21 @@ public class PermadeathMode extends JavaPlugin {
         player.playSound(player.getLocation(), Sound.BLOCK_END_PORTAL_SPAWN, 1.0F, 1.0F);
         player.playSound(player.getLocation(), Sound.BLOCK_END_PORTAL_SPAWN, 1.0F, 2.0F);
         
-        player.sendTitle("\u00a7a\u00a7l¡REVIVIDO!", "\u00a77Volviste a la vida en el lugar de tu muerte", 5, 40, 10);
-        player.sendMessage("\u00a7a[Permadeath] \u00a77Has vuelto a la vida.");
+        player.sendTitle("\u00a7a\u00a7l" + getMessage("permadeath.revived_title"), "\u00a77" + getMessage("permadeath.back_to_life"), 5, 40, 10);
+        player.sendMessage("\u00a7a[Permadeath] \u00a77" + getMessage("permadeath.back_to_life_msg"));
         
         // Broadcast a todos los jugadores quien revivio al jugador
         String reviverName = reviver != null ? reviver.getName() : "Sistema";
-        Bukkit.broadcastMessage(ChatColor.GOLD + "[Permadeath] " + ChatColor.YELLOW + reviverName + ChatColor.GRAY + " revivio a " + ChatColor.YELLOW + player.getName());
+        Bukkit.broadcastMessage(ChatColor.GOLD + "[Permadeath] " + ChatColor.YELLOW + reviverName + ChatColor.GRAY + " " + getMessage("permadeath.revived") + " " + ChatColor.YELLOW + player.getName());
         
         // Crear particulas negras de resurrección
         spawnResurrectionParticles(player.getLocation(), player);
+        
+        // Increment revive count and check achievements
+        if (reviver != null) {
+            incrementReviveCount(reviver.getUniqueId());
+            checkReviveAchievements(reviver);
+        }
     }
     
     private void spawnResurrectionParticles(Location location, Player player) {
@@ -362,7 +377,7 @@ public class PermadeathMode extends JavaPlugin {
         if (isThundering && autoWeatherEnabled) {
             setPermadeathEnabled(true);
             triggerToggleSoundAll();
-            Bukkit.broadcastMessage(ChatColor.GOLD + "[Permadeath] " + ChatColor.GRAY + "Modo permadeath " + ChatColor.YELLOW + "ACTIVADO" + ChatColor.GRAY + " por tormenta.");
+            Bukkit.broadcastMessage(ChatColor.GOLD + "[Permadeath] " + ChatColor.GRAY + getMessage("permadeath.enabled_weather"));
             
             // Obtener duración real de la tormenta en ticks y convertir a segundos
             World world = Bukkit.getWorlds().get(0);
@@ -377,7 +392,7 @@ public class PermadeathMode extends JavaPlugin {
                 long remainingSeconds = Math.max(0, stormDuration - elapsedSeconds);
                 
                 for (Player player : Bukkit.getOnlinePlayers()) {
-                    String actionBarText = ChatColor.GOLD + "[Tormenta] " + ChatColor.YELLOW + remainingSeconds + "s";
+                    String actionBarText = ChatColor.GOLD + "[" + getMessage("storm") + "] " + ChatColor.YELLOW + remainingSeconds + "s";
                     player.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(actionBarText));
                 }
             }, 0, 20);
@@ -385,7 +400,7 @@ public class PermadeathMode extends JavaPlugin {
         } else if (!isThundering && autoWeatherEnabled) {
             setPermadeathEnabled(false);
             triggerToggleSoundAll();
-            Bukkit.broadcastMessage(ChatColor.GOLD + "[Permadeath] " + ChatColor.GRAY + "Modo permadeath " + ChatColor.YELLOW + "DESACTIVADO" + ChatColor.GRAY + " la tormenta pasó.");
+            Bukkit.broadcastMessage(ChatColor.GOLD + "[Permadeath] " + ChatColor.GRAY + getMessage("permadeath.disabled_weather"));
             
             // Cancelar temporizadores
             for (Integer taskId : new ArrayList<>(weatherTimers.keySet())) {
@@ -408,5 +423,185 @@ public class PermadeathMode extends JavaPlugin {
         this.autoWeatherEnabled = enabled;
         getConfig().set("permadeath.auto-weather", enabled);
         saveConfig();
+    }
+    
+    // Language system
+    public String getLanguage() {
+        return language;
+    }
+    
+    public void setLanguage(String lang) {
+        this.language = lang;
+        getConfig().set("language", lang);
+        saveConfig();
+    }
+    
+    public String getMessage(String key) {
+        Map<String, Map<String, String>> messages = new HashMap<>();
+        
+        // Spanish messages
+        Map<String, String> es = new HashMap<>();
+        es.put("permadeath.activated", "Modo permadeath activado.");
+        es.put("permadeath.deactivated", "Modo permadeath desactivado.");
+        es.put("permadeath.enabled_weather", "Modo permadeath ACTIVADO por tormenta.");
+        es.put("permadeath.disabled_weather", "Modo permadeath DESACTIVADO la tormenta pasó.");
+        es.put("permadeath.active_warning", "El modo permadeath está activado. Si mueres, serás expulsado del servidor.");
+        es.put("permadeath.attention", "¡ATENCIÓN!");
+        es.put("permadeath.active_on_server", "El modo permadeath está ACTIVO en este servidor");
+        es.put("permadeath.died", "murió en");
+        es.put("permadeath.revived", "revivio a");
+        es.put("permadeath.you_died", "Has muerto");
+        es.put("permadeath.active", "El modo permadeath está activo");
+        es.put("permadeath.back_normal", "Has vuelto al modo normal");
+        es.put("permadeath.death_permanent", "La muerte será permanente");
+        es.put("permadeath.revived_title", "¡REVIVIDO!");
+        es.put("permadeath.back_to_life", "Volviste a la vida en el lugar de tu muerte");
+        es.put("permadeath.back_to_life_msg", "Has vuelto a la vida.");
+        es.put("permadeath.dead_title", "Estás muerto");
+        es.put("permadeath.get_book", "Recoge el libro dorado de la caja y haz clic derecho");
+        es.put("permadeath.died_at", "Moriste en:");
+        es.put("permadeath.copy_teleport", "(copiar para teleportarse)");
+        es.put("permadeath.toggle_on", "Permadeath activado");
+        es.put("permadeath.toggle_off", "Permadeath desactivado");
+        es.put("storm", "Tormenta");
+        es.put("achievement.nigromante", "¡Logro desbloqueado: Nigromante!");
+        es.put("achievement.necrokinesis", "¡Logro desbloqueado: Necrokinesis!");
+        es.put("achievement.sadico", "¡Logro desbloqueado: Sádico!");
+        es.put("achievement.sssadico", "¡Logro desbloqueado: SSSádico!");
+        es.put("book.display_name", "✦ Libro de Resurrección ✦");
+        es.put("book.click_to_revive", ">> CLICK DERECHO PARA REVIVIR <<");
+        es.put("book.location", "Ubicación:");
+        es.put("book.cause", "Causa:");
+        es.put("book.killer", "Victimario:");
+        es.put("head.lore", "El cráneo del difunto");
+        
+        // English messages
+        Map<String, String> en = new HashMap<>();
+        en.put("permadeath.activated", "Permadeath mode activated.");
+        en.put("permadeath.deactivated", "Permadeath mode deactivated.");
+        en.put("permadeath.enabled_weather", "Permadeath mode ACTIVATED by storm.");
+        en.put("permadeath.disabled_weather", "Permadeath mode DEACTIVATED storm passed.");
+        en.put("permadeath.active_warning", "Permadeath mode is active. If you die, you will be kicked from the server.");
+        en.put("permadeath.attention", "ATTENTION!");
+        en.put("permadeath.active_on_server", "Permadeath mode is ACTIVE on this server");
+        en.put("permadeath.died", "died at");
+        en.put("permadeath.revived", "revived");
+        en.put("permadeath.you_died", "You died");
+        en.put("permadeath.active", "Permadeath mode is active");
+        en.put("permadeath.back_normal", "You are back to normal mode");
+        en.put("permadeath.death_permanent", "Death will be permanent");
+        en.put("permadeath.revived_title", "REVIVED!");
+        en.put("permadeath.back_to_life", "You came back to life at the place of your death");
+        en.put("permadeath.back_to_life_msg", "You have come back to life.");
+        en.put("permadeath.dead_title", "You are dead");
+        en.put("permadeath.get_book", "Get the golden book from the chest and right-click");
+        en.put("permadeath.died_at", "You died at:");
+        en.put("permadeath.copy_teleport", "(copy to teleport)");
+        en.put("permadeath.toggle_on", "Permadeath activated");
+        en.put("permadeath.toggle_off", "Permadeath deactivated");
+        en.put("storm", "Storm");
+        en.put("achievement.nigromante", "Achievement unlocked: Necromancer!");
+        en.put("achievement.necrokinesis", "Achievement unlocked: Necrokinesis!");
+        en.put("achievement.sadico", "Achievement unlocked: Sadist!");
+        en.put("achievement.sssadico", "Achievement unlocked: SSSadist!");
+        en.put("book.display_name", "✦ Resurrection Book ✦");
+        en.put("book.click_to_revive", ">> RIGHT CLICK TO REVIVE <<");
+        en.put("book.location", "Location:");
+        en.put("book.cause", "Cause:");
+        en.put("book.killer", "Killer:");
+        en.put("head.lore", "The skull of the deceased");
+        
+        messages.put("es", es);
+        messages.put("en", en);
+        
+        Map<String, String> langMessages = messages.getOrDefault(language, messages.get("es"));
+        return langMessages.getOrDefault(key, key);
+    }
+    
+    // Statistics management
+    private void loadStatistics() {
+        if (getConfig().contains("statistics.reviveCounts")) {
+            for (String uuidStr : getConfig().getConfigurationSection("statistics.reviveCounts").getKeys(false)) {
+                UUID uuid = UUID.fromString(uuidStr);
+                reviveCounts.put(uuid, getConfig().getInt("statistics.reviveCounts." + uuidStr));
+            }
+        }
+        if (getConfig().contains("statistics.headCounts")) {
+            for (String uuidStr : getConfig().getConfigurationSection("statistics.headCounts").getKeys(false)) {
+                UUID uuid = UUID.fromString(uuidStr);
+                headCounts.put(uuid, getConfig().getInt("statistics.headCounts." + uuidStr));
+            }
+        }
+    }
+    
+    private void saveStatistics() {
+        for (Map.Entry<UUID, Integer> entry : reviveCounts.entrySet()) {
+            getConfig().set("statistics.reviveCounts." + entry.getKey().toString(), entry.getValue());
+        }
+        for (Map.Entry<UUID, Integer> entry : headCounts.entrySet()) {
+            getConfig().set("statistics.headCounts." + entry.getKey().toString(), entry.getValue());
+        }
+        saveConfig();
+    }
+    
+    public int getReviveCount(UUID uuid) {
+        return reviveCounts.getOrDefault(uuid, 0);
+    }
+    
+    public int getHeadCount(UUID uuid) {
+        return headCounts.getOrDefault(uuid, 0);
+    }
+    
+    public void incrementReviveCount(UUID uuid) {
+        reviveCounts.put(uuid, reviveCounts.getOrDefault(uuid, 0) + 1);
+        saveStatistics();
+    }
+    
+    public void incrementHeadCount(UUID uuid) {
+        headCounts.put(uuid, headCounts.getOrDefault(uuid, 0) + 1);
+        saveStatistics();
+    }
+    
+    // Achievement system
+    private void checkReviveAchievements(Player player) {
+        UUID uuid = player.getUniqueId();
+        int count = getReviveCount(uuid);
+        
+        if (count == 1) {
+            grantAchievement(player, "nigromante");
+        } else if (count == 10) {
+            grantAchievement(player, "necrokinesis");
+        }
+    }
+    
+    public void checkHeadAchievements(Player player) {
+        UUID uuid = player.getUniqueId();
+        int count = getHeadCount(uuid);
+        
+        if (count == 1) {
+            grantAchievement(player, "sadico");
+        } else if (count == 10) {
+            grantAchievement(player, "sssadico");
+        }
+    }
+    
+    private void grantAchievement(Player player, String achievementKey) {
+        String message = getMessage("achievement." + achievementKey);
+        player.sendMessage(ChatColor.GOLD + "[Permadeath] " + ChatColor.YELLOW + message);
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0F, 1.0F);
+        
+        // Try to grant actual Minecraft advancement if exists
+        try {
+            NamespacedKey advancementKey = new NamespacedKey(this, achievementKey);
+            Advancement advancement = Bukkit.getAdvancement(advancementKey);
+            if (advancement != null) {
+                AdvancementProgress progress = player.getAdvancementProgress(advancement);
+                if (!progress.isDone()) {
+                    progress.awardCriteria("trigger");
+                }
+            }
+        } catch (Exception e) {
+            // Advancement doesn't exist, just show message
+        }
     }
 }

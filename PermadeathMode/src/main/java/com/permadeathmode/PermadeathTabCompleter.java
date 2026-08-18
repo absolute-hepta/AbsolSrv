@@ -17,9 +17,13 @@ public class PermadeathTabCompleter implements TabCompleter {
             completions.add("on");
             completions.add("off");
             completions.add("auto");
+            completions.add("lang");
         } else if (args.length == 2 && args[0].equalsIgnoreCase("auto")) {
             completions.add("on");
             completions.add("off");
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("lang")) {
+            completions.add("es");
+            completions.add("en");
         }
 
         return completions;
