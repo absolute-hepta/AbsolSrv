@@ -1,0 +1,17 @@
+name: PermadeathMode
+version: 1.0.0
+main: com.permadeathmode.PermadeathMode
+api-version: 1.20
+author: Xautral
+description: Permadeath Mode para el servidor.
+
+commands:
+  permadeath:
+    description: Activa o desactiva el modo permadeath.
+    usage: /permadeath <on|off>
+    permission: permadeath.use
+
+permissions:
+  permadeath.use:
+    description: Permite activar o desactivar el modo permadeath.
+    default: true
