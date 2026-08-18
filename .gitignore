@@ -1,51 +1,37 @@
-# Archivos con secretos (¡nunca subir!)
-config.env
-config.json
-starter.py
+# Secrets / runtime config
 .env
 *.env
-*.local
-*.
+config.yml
+scene.json
+player_memories.json
+suggestions.json
+Nate.jar
+plugins/**/config.yml
+plugins/**/cache/
+plugins/**/data/
+plugins/**/logs/
 
-# Configuración local del plugin Nate
-plugins/NatePlugin/config.yml
-plugins/NatePlugin/*.yml
-plugins/NatePlugin/*.json
-plugins/NatePlugin/*.db
-plugins/NatePlugin/cache/
-plugins/NatePlugin/data/
-plugins/NatePlugin/logs/
+# Java / build artifacts
+target/
+*.class
+*.jar
 
 # Logs
-
-*.log
 logs/
-log_position.txt
-monitor.log
-nohup.out
+*.log
 *.log.*
 
-# Archivos temporales
-*.tmp
-*.swp
-*~
-.DS_Store
-Thumbs.db
+# Runtime server data
+world/
+usercache.json
+banned-ips.json
+banned-players.json
+ops.json
+whitelist.json
+cache/
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-
-# IDE
+# Local tooling
 .vscode/
 .idea/
-*.iml
-starter.py
-log_retriever.py
-config.yml
+.DS_Store
+Thumbs.db

@@ -1,8 +1,8 @@
 {
-  "currentConversation": "quit",
+  "currentConversation": "join",
   "flow": [
-    "quit"
+    "join"
   ],
-  "detail": "Blade880 abandonó el servidor como jugador normal.",
-  "lastUpdated": 1787066846375
+  "detail": "OmniXautral se unió al servidor como OP/administrador.",
+  "lastUpdated": 1787067326881
 }
