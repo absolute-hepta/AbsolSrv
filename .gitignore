@@ -3,8 +3,18 @@ config.env
 config.json
 starter.py
 .env
+*.env
+*.local
 *.
+
+# Configuración local del plugin Nate
 plugins/NatePlugin/config.yml
+plugins/NatePlugin/*.yml
+plugins/NatePlugin/*.json
+plugins/NatePlugin/*.db
+plugins/NatePlugin/cache/
+plugins/NatePlugin/data/
+plugins/NatePlugin/logs/
 
 # Logs
 
@@ -36,8 +46,6 @@ venv/
 .vscode/
 .idea/
 *.iml
-starter.py
-starter.py
 starter.py
 log_retriever.py
 config.yml

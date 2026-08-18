@@ -1,6 +1,7 @@
 package com.nateplugin;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import okhttp3.*;
 
@@ -15,8 +16,8 @@ public class OpenAIManager {
     private static OpenAIManager instance;
     private OkHttpClient client;
     private Gson gson;
-    private static final String API_URL = "https://openrouter.ai/api/v1/chat/completions";
-    private static final String MODELS_URL = "https://openrouter.ai/api/v1/models";
+    private static final String DEFAULT_OPENROUTER_API = "https://openrouter.ai/api/v1";
+    private static final String DEFAULT_OLLAMA_API = "http://localhost:11434";
     
     public OpenAIManager() {
         instance = this;
@@ -44,47 +45,59 @@ public class OpenAIManager {
     }
     
     private List<String> fetchAvailableModels() throws IOException {
-        Request request = new Request.Builder()
-                .url(MODELS_URL)
-                .addHeader("Authorization", "Bearer " + NatePlugin.getInstance().getApiKey())
-                .addHeader("HTTP-Referer", "https://minecraft-server.com") // OpenRouter requirement
-                .addHeader("X-Title", "Nate Minecraft Plugin")
-                .get()
-                .build();
-        
+        String provider = NatePlugin.getInstance().getProvider();
+        String baseUrl = NatePlugin.getInstance().getApiBaseUrl();
+        String modelsUrl = getModelsUrl(baseUrl, provider);
+
+        Request.Builder builder = new Request.Builder().url(modelsUrl).get();
+        if ("openrouter".equals(provider)) {
+            builder.addHeader("Authorization", "Bearer " + NatePlugin.getInstance().getApiKey())
+                   .addHeader("HTTP-Referer", "https://minecraft-server.com")
+                   .addHeader("X-Title", "Nate Minecraft Plugin");
+        }
+
+        Request request = builder.build();
+
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                String errorBody = response.body().string();
+                String errorBody = response.body() == null ? "" : response.body().string();
                 throw new IOException("Error al obtener modelos: " + response.code() + " " + response.message() + " - " + errorBody);
             }
-            
-            String responseBody = response.body().string();
-            
+
+            String responseBody = response.body() == null ? "" : response.body().string();
+
+            if ("ollama".equals(provider)) {
+                JsonObject responseJson = gson.fromJson(responseBody, JsonObject.class);
+                if (responseJson == null || !responseJson.has("models")) {
+                    throw new IOException("La respuesta de Ollama no contiene el campo 'models'. Respuesta: " + responseBody);
+                }
+                List<String> models = new ArrayList<>();
+                for (com.google.gson.JsonElement jsonElement : responseJson.getAsJsonArray("models")) {
+                    JsonObject modelObj = jsonElement.getAsJsonObject();
+                    if (modelObj.has("name")) {
+                        models.add(modelObj.get("name").getAsString());
+                    }
+                }
+                return models;
+            }
+
             try {
                 JsonObject responseJson = gson.fromJson(responseBody, JsonObject.class);
-                
                 if (!responseJson.has("data")) {
                     throw new IOException("La respuesta no contiene el campo 'data'. Respuesta: " + responseBody);
                 }
-                
-                // Filtrar y ordenar modelos: gratuitos primero, luego de pago
+
                 List<ModelInfo> allModels = new ArrayList<>();
-                
                 for (com.google.gson.JsonElement jsonElement : responseJson.getAsJsonArray("data")) {
                     try {
                         JsonObject modelObj = jsonElement.getAsJsonObject();
                         String id = modelObj.get("id").getAsString();
                         String name = modelObj.has("name") ? modelObj.get("name").getAsString() : id;
-                        
-                        // Determinar si es gratuito basándonos en múltiples criterios
+
                         boolean isFree = false;
-                        
-                        // Criterio 1: ID contiene ":free"
                         if (id.contains(":free")) {
                             isFree = true;
                         }
-                        
-                        // Criterio 2: Pricing es 0
                         if (modelObj.has("pricing")) {
                             try {
                                 JsonObject pricingObj = modelObj.getAsJsonObject("pricing");
@@ -94,29 +107,21 @@ public class OpenAIManager {
                                 if (pricingObj.has("completion") && pricingObj.get("completion").getAsDouble() == 0) {
                                     isFree = true;
                                 }
-                            } catch (Exception e) {
-                                // Ignorar errores en pricing
+                            } catch (Exception ignored) {
                             }
                         }
-                        
-                        // Criterio 3: Arquitectura específica gratuita
                         if (id.contains("llama") || id.contains("gemma") || id.contains("mistral") || id.contains("qwen")) {
                             isFree = true;
                         }
-                        
-                        int pricing = isFree ? 0 : 1;
-                        allModels.add(new ModelInfo(id, name, pricing));
-                        
+
+                        allModels.add(new ModelInfo(id, name, isFree ? 0 : 1));
                     } catch (Exception e) {
-                        // Si falla el parsing de un modelo, continuar con el siguiente
                         System.err.println("Error parsing model: " + e.getMessage());
                     }
                 }
-                
-                // Separar modelos gratuitos y de pago
+
                 List<String> freeModels = new ArrayList<>();
                 List<String> paidModels = new ArrayList<>();
-                
                 for (ModelInfo model : allModels) {
                     if (model.pricing == 0) {
                         freeModels.add(model.id);
@@ -124,20 +129,40 @@ public class OpenAIManager {
                         paidModels.add(model.id);
                     }
                 }
-                
-                // Combinar: gratuitos primero, luego de pago
+
                 List<String> sortedModels = new ArrayList<>();
                 sortedModels.addAll(freeModels);
                 sortedModels.addAll(paidModels);
-                
                 return sortedModels;
-                
+
             } catch (Exception e) {
                 throw new IOException("Error al procesar respuesta JSON: " + e.getMessage() + ". Respuesta: " + responseBody);
             }
         }
     }
     
+    private static String getModelsUrl(String baseUrl, String provider) {
+        if ("ollama".equalsIgnoreCase(provider)) {
+            return normalizeBaseUrl(baseUrl) + "/api/tags";
+        }
+        return normalizeBaseUrl(baseUrl) + "/models";
+    }
+
+    private static String normalizeBaseUrl(String baseUrl) {
+        String value = baseUrl == null || baseUrl.trim().isEmpty() ? DEFAULT_OPENROUTER_API : baseUrl.trim();
+        if (value.endsWith("/")) {
+            value = value.substring(0, value.length() - 1);
+        }
+        return value;
+    }
+
+    private static String getChatCompletionsUrl(String baseUrl, String provider) {
+        if ("ollama".equalsIgnoreCase(provider)) {
+            return normalizeBaseUrl(baseUrl) + "/api/chat";
+        }
+        return normalizeBaseUrl(baseUrl) + "/chat/completions";
+    }
+
     private static class ModelInfo {
         String id;
         String name;
@@ -216,50 +241,75 @@ public class OpenAIManager {
     
     private String callOpenAI(String systemPrompt, String userMessage) throws IOException {
         JsonObject requestBody = new JsonObject();
-        
-        // Ajustar el nombre del modelo para OpenRouter si es necesario
+        String provider = NatePlugin.getInstance().getProvider();
         String modelName = NatePlugin.getInstance().getModel();
-        if (!modelName.contains("/")) {
-            // Si el usuario puso un nombre simple, intentar convertirlo al formato de OpenRouter
+
+        if ("openrouter".equals(provider) && !modelName.contains("/")) {
             modelName = convertToOpenRouterFormat(modelName);
         }
-        
+
         requestBody.addProperty("model", modelName);
-        
-        List<JsonObject> messages = new ArrayList<>();
-        
-        JsonObject systemMessage = new JsonObject();
-        systemMessage.addProperty("role", "system");
-        systemMessage.addProperty("content", systemPrompt);
-        messages.add(systemMessage);
-        
-        JsonObject userMessageObj = new JsonObject();
-        userMessageObj.addProperty("role", "user");
-        userMessageObj.addProperty("content", userMessage);
-        messages.add(userMessageObj);
-        
-        requestBody.add("messages", gson.toJsonTree(messages));
-        requestBody.addProperty("max_tokens", 200);
-        requestBody.addProperty("temperature", 0.8);
-        
-        Request request = new Request.Builder()
-                .url(API_URL)
-                .addHeader("Authorization", "Bearer " + NatePlugin.getInstance().getApiKey())
-                .addHeader("HTTP-Referer", "https://minecraft-server.com") // OpenRouter requirement
-                .addHeader("X-Title", "Nate Minecraft Plugin")
-                .addHeader("Content-Type", "application/json")
-                .post(RequestBody.create(requestBody.toString(), MediaType.parse("application/json")))
-                .build();
-        
+
+        if ("ollama".equals(provider)) {
+            requestBody.addProperty("stream", false);
+            JsonArray messages = new JsonArray();
+            JsonObject systemMessage = new JsonObject();
+            systemMessage.addProperty("role", "system");
+            systemMessage.addProperty("content", systemPrompt);
+            messages.add(systemMessage);
+
+            JsonObject userMessageObj = new JsonObject();
+            userMessageObj.addProperty("role", "user");
+            userMessageObj.addProperty("content", userMessage);
+            messages.add(userMessageObj);
+
+            requestBody.add("messages", messages);
+            JsonObject options = new JsonObject();
+            options.addProperty("temperature", 0.8);
+            requestBody.add("options", options);
+        } else {
+            List<JsonObject> messages = new ArrayList<>();
+            JsonObject systemMessage = new JsonObject();
+            systemMessage.addProperty("role", "system");
+            systemMessage.addProperty("content", systemPrompt);
+            messages.add(systemMessage);
+
+            JsonObject userMessageObj = new JsonObject();
+            userMessageObj.addProperty("role", "user");
+            userMessageObj.addProperty("content", userMessage);
+            messages.add(userMessageObj);
+
+            requestBody.add("messages", gson.toJsonTree(messages));
+            requestBody.addProperty("max_tokens", 200);
+            requestBody.addProperty("temperature", 0.8);
+        }
+
+        Request.Builder builder = new Request.Builder()
+                .url(getChatCompletionsUrl(NatePlugin.getInstance().getApiBaseUrl(), provider))
+                .addHeader("Content-Type", "application/json");
+
+        if ("openrouter".equals(provider)) {
+            builder.addHeader("Authorization", "Bearer " + NatePlugin.getInstance().getApiKey())
+                   .addHeader("HTTP-Referer", "https://minecraft-server.com")
+                   .addHeader("X-Title", "Nate Minecraft Plugin");
+        }
+
+        Request request = builder.post(RequestBody.create(requestBody.toString(), MediaType.parse("application/json"))).build();
+
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                String errorBody = response.body().string();
+                String errorBody = response.body() == null ? "" : response.body().string();
                 throw new IOException("Error en la API: " + response.code() + " " + response.message() + " - " + errorBody);
             }
-            
-            String responseBody = response.body().string();
+
+            String responseBody = response.body() == null ? "" : response.body().string();
             JsonObject responseJson = gson.fromJson(responseBody, JsonObject.class);
-            
+
+            if ("ollama".equals(provider)) {
+                JsonObject message = responseJson.getAsJsonObject("message");
+                return message.get("content").getAsString();
+            }
+
             return responseJson
                     .getAsJsonArray("choices")
                     .get(0)

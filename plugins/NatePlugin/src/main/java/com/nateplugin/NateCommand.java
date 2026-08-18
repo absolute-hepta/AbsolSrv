@@ -14,7 +14,7 @@ public class NateCommand implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cUso: /nate <on|off|self|apikey|status|model|banlist|pardon|suggest>"));
+            sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cUso: /nate <on|off|self|apikey|provider|status|model|banlist|pardon|suggest>"));
             return true;
         }
         
@@ -72,24 +72,47 @@ public class NateCommand implements CommandExecutor {
                 
                 if (args.length < 2) {
                     sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cUso: /nate apikey <tu_api_key>"));
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Obtén tu API key gratuita en https://openrouter.ai/"));
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Regístrate gratis y obtén tu key en Settings > API Keys"));
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Para OpenRouter: usa la key de tu cuenta. Para Ollama: puedes dejarla vacía si estás usando localhost."));
                     return true;
                 }
                 
                 String key = args[1];
                 NatePlugin.getInstance().setApiKey(key);
-                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aAPI key de OpenRouter configurada correctamente. &7Gracias..."));
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aAPI key configurada correctamente. &7Gracias..."));
                 sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Ahora puedes activar a Nate con /nate on"));
+                return true;
+
+            case "provider":
+                if (!NatePlugin.getInstance().isAdmin(sender)) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cSolo los OP pueden cambiar el proveedor de API de Nate."));
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cUso: /nate provider <openrouter|ollama> [url_base]"));
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Ejemplo Ollama: /nate provider ollama http://localhost:11434"));
+                    return true;
+                }
+                String provider = args[1];
+                if (!provider.equalsIgnoreCase("openrouter") && !provider.equalsIgnoreCase("ollama")) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cProveedor inválido. Usa &fopenrouter &co &follama."));
+                    return true;
+                }
+                NatePlugin.getInstance().setProvider(provider);
+                if (args.length >= 3) {
+                    NatePlugin.getInstance().setApiBaseUrl(args[2]);
+                }
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aProveedor de API establecido a: &f" + provider.toLowerCase()));
                 return true;
                 
             case "status":
                 boolean statusEnabled = NatePlugin.getInstance().isNateEnabled();
                 boolean hasKey = !NatePlugin.getInstance().getApiKey().isEmpty();
                 String currentModel = NatePlugin.getInstance().getModel();
+                String currentProvider = NatePlugin.getInstance().getProvider();
                 
                 sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&6=== Estado de Nate ==="));
                 sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Estado: " + (statusEnabled ? "&aActivado" : "&cDesactivado")));
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Proveedor: &f" + currentProvider));
                 sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7API Key: " + (hasKey ? "&aConfigurada" : "&cNo configurada")));
                 sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Modelo actual: &f" + currentModel));
                 return true;
@@ -114,27 +137,31 @@ public class NateCommand implements CommandExecutor {
                         return true;
                     }
                     
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Obteniendo modelos disponibles de OpenRouter..."));
+                    String providerName = NatePlugin.getInstance().getProvider();
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Obteniendo modelos disponibles de " + providerName.toUpperCase() + "..."));
                     
                     OpenAIManager.getInstance().getAvailableModels()
                         .thenAccept(models -> {
                             NatePlugin.getInstance().getServer().getScheduler().runTask(
                                 NatePlugin.getInstance(),
                                 () -> {
-                                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&6=== Modelos disponibles (OpenRouter) ==="));
-                                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&a✓ = Gratis | &c✗ = Pago"));
+                                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&6=== Modelos disponibles (" + providerName.toUpperCase() + ") ==="));
+                                    if ("openrouter".equals(providerName)) {
+                                        sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&a✓ = Gratis | &c✗ = Pago"));
+                                    }
                                     
                                     int limit = Math.min(models.size(), 15);
                                     for (int i = 0; i < limit; i++) {
                                         String model = models.get(i);
-                                        boolean isFree = isFreeModel(model);
-                                        String indicator = isFree ? "&a✓" : "&c✗";
-                                        String modelDisplay = indicator + " &f" + model;
-                                        
+                                        String modelDisplay = "&f" + model;
+                                        if ("openrouter".equals(providerName)) {
+                                            boolean isFree = isFreeModel(model);
+                                            String indicator = isFree ? "&a✓" : "&c✗";
+                                            modelDisplay = indicator + " &f" + model;
+                                        }
                                         if (model.equals(NatePlugin.getInstance().getModel())) {
                                             modelDisplay += " &7(Actual)";
                                         }
-                                        
                                         sender.sendMessage(ChatColor.translateAlternateColorCodes('&', modelDisplay));
                                     }
                                     
@@ -149,7 +176,7 @@ public class NateCommand implements CommandExecutor {
                                 NatePlugin.getInstance(),
                                 () -> {
                                     sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cError al obtener modelos: " + ex.getMessage()));
-                                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Verifica que tu API key de OpenRouter sea correcta"));
+                                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Verifica que la API y la URL base de " + providerName + " sean correctas"));
                                 }
                             );
                             return null;
@@ -219,7 +246,7 @@ public class NateCommand implements CommandExecutor {
                 return true;
                 
             default:
-                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cUso: /nate <on|off|apikey|status|model|banlist|pardon|suggest>"));
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cUso: /nate <on|off|apikey|provider|status|model|banlist|pardon|suggest>"));
                 return true;
         }
     }

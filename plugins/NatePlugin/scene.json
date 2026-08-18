@@ -1,8 +1,8 @@
 {
-  "currentConversation": "admin",
+  "currentConversation": "quit",
   "flow": [
-    "admin"
+    "quit"
   ],
-  "detail": "La conversación cambió y el flujo fue reiniciado.",
-  "lastUpdated": 1787066236324
+  "detail": "Blade880 abandonó el servidor como jugador normal.",
+  "lastUpdated": 1787066846375
 }

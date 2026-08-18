@@ -18,6 +18,8 @@ public class NatePlugin extends JavaPlugin {
     private static NatePlugin instance;
     private boolean nateEnabled = false;
     private String apiKey = "";
+    private String provider = "openrouter";
+    private String apiBaseUrl = "https://openrouter.ai/api/v1";
     private String model = "meta-llama/llama-3.3-70b-instruct:free";
     private final Map<UUID, BukkitTask> thinkingTasks = new HashMap<>();
     private final Map<UUID, Integer> thinkingProgress = new HashMap<>();
@@ -32,7 +34,15 @@ public class NatePlugin extends JavaPlugin {
         
         nateEnabled = getConfig().getBoolean("nate.enabled", false);
         apiKey = getConfig().getString("nate.apikey", "");
+        provider = getConfig().getString("nate.provider", "openrouter");
+        apiBaseUrl = getConfig().getString("nate.apiBaseUrl", "https://openrouter.ai/api/v1");
         model = getConfig().getString("nate.model", "meta-llama/llama-3.3-70b-instruct:free");
+        if (provider == null || provider.trim().isEmpty()) {
+            provider = "openrouter";
+        }
+        if (apiBaseUrl == null || apiBaseUrl.trim().isEmpty()) {
+            apiBaseUrl = "https://openrouter.ai/api/v1";
+        }
         
         new MemoryManager();
         new OpenAIManager();
@@ -98,6 +108,26 @@ public class NatePlugin extends JavaPlugin {
     
     public String getModel() {
         return model;
+    }
+    
+    public String getProvider() {
+        return provider == null || provider.trim().isEmpty() ? "openrouter" : provider.trim().toLowerCase(Locale.ROOT);
+    }
+    
+    public void setProvider(String provider) {
+        this.provider = provider == null || provider.trim().isEmpty() ? "openrouter" : provider.trim().toLowerCase(Locale.ROOT);
+        getConfig().set("nate.provider", this.provider);
+        saveConfig();
+    }
+    
+    public String getApiBaseUrl() {
+        return apiBaseUrl == null || apiBaseUrl.trim().isEmpty() ? "https://openrouter.ai/api/v1" : apiBaseUrl.trim();
+    }
+    
+    public void setApiBaseUrl(String apiBaseUrl) {
+        this.apiBaseUrl = apiBaseUrl == null || apiBaseUrl.trim().isEmpty() ? "https://openrouter.ai/api/v1" : apiBaseUrl.trim();
+        getConfig().set("nate.apiBaseUrl", this.apiBaseUrl);
+        saveConfig();
     }
     
     public void setModel(String model) {
