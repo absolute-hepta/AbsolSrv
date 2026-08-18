@@ -1,11 +1,8 @@
 {
-  "currentConversation": "general",
+  "currentConversation": "admin",
   "flow": [
-    "general",
-    "chat:JAJAJAJAJ",
-    "chat:JAJAAJAJ",
-    "chat:HAJAJAJAJAJAJA"
+    "admin"
   ],
   "detail": "La conversación cambió y el flujo fue reiniciado.",
-  "lastUpdated": 1787065434376
+  "lastUpdated": 1787066236324
 }

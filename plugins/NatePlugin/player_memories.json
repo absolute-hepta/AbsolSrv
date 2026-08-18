@@ -4,22 +4,22 @@
     "interactionTypes": {
       "halagos": 1,
       "tratos_amables": 0,
-      "insultos": 0,
+      "insultos": 4,
       "tratos_rudos": 0
     },
-    "attitude": "amigable",
-    "totalInteractions": 1,
-    "lastInteraction": 1787065164305,
+    "attitude": "hostil",
+    "totalInteractions": 5,
+    "lastInteraction": 1787066173880,
     "recentMessages": [
-      "se quedo con el trix alv",
-      "y mato a tus cosos de tu inv",
-      "_elDXOX_10 fue de un evento de un miboss",
-      "no te creas mucho realmente no hace tanto daño",
-      "es un arma de desorientar mas que de matar"
+      "no",
+      "no q se muere",
+      "vas w",
+      "miren el tab",
+      "_elDXOX_10 las mató con su tridente así vergotas"
     ],
-    "emotion": "empatía",
-    "opinion": "jugador amable y positivo",
-    "behaviorGuidance": "Sé empático y comprensivo"
+    "emotion": "asco",
+    "opinion": "jugador problemático y grosero",
+    "behaviorGuidance": "Mantén el tono firme y sereno, sin dramatizar ni entrar en conflicto"
   },
   "6fc8fb21-4d7b-3b76-8533-0fa259ab95ff": {
     "playerName": "Blade880",
@@ -33,11 +33,11 @@
     "totalInteractions": 0,
     "lastInteraction": 1787064715623,
     "recentMessages": [
-      "me quedare 5 minutos mas afk xd",
-      "naaa",
-      "sale que tu fuistes -_-",
-      "un pvp",
-      "xd"
+      "si tu la tenias",
+      "danos la mesa o te mato",
+      "Onmi dame mazanas y tpaeme donde el",
+      "que lag",
+      "solo tengo dos manzanas"
     ],
     "emotion": "amabilidad",
     "opinion": "jugador neutro",
@@ -55,11 +55,11 @@
     "totalInteractions": 4,
     "lastInteraction": 1787065158449,
     "recentMessages": [
-      "Y ESTE TRIDENTE?",
-      "jajajajajaa",
-      "JAJAJAJAJ",
-      "JAJAAJAJ",
-      "HAJAJAJAJAJAJA"
+      "OmniXautral pero los libros bro",
+      "de donde piensas q sacare la mesa XDD",
+      "ok",
+      "se le fue el net",
+      "JAJAJAJA"
     ],
     "emotion": "amabilidad",
     "opinion": "jugador neutro",

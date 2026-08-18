@@ -3,7 +3,8 @@ config.env
 config.json
 starter.py
 .env
-*.env
+*.
+plugins/NatePlugin/config.yml
 
 # Logs
 

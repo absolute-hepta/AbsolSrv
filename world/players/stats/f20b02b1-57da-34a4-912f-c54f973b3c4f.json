@@ -1,22 +1,22 @@
 {
   "stats": {
     "minecraft:custom": {
-      "minecraft:time_since_rest": 24295,
+      "minecraft:time_since_rest": 36293,
       "minecraft:walk_one_cm": 2459,
       "minecraft:leave_game": 1,
-      "minecraft:play_time": 24295,
+      "minecraft:play_time": 36293,
       "minecraft:jump": 30,
-      "minecraft:time_since_death": 24295,
+      "minecraft:time_since_death": 36293,
       "minecraft:drop": 35,
       "minecraft:sprint_one_cm": 1055,
       "minecraft:open_chest": 1,
       "minecraft:fall_one_cm": 240,
-      "minecraft:total_world_time": 24295,
-      "minecraft:fly_one_cm": 164850,
+      "minecraft:total_world_time": 36293,
+      "minecraft:fly_one_cm": 234200,
       "minecraft:interact_with_anvil": 1,
       "minecraft:walk_on_water_one_cm": 89,
       "minecraft:crouch_one_cm": 403,
-      "minecraft:sneak_time": 1039
+      "minecraft:sneak_time": 1318
     },
     "minecraft:used": {
       "minecraft:repeating_command_block": 2,
