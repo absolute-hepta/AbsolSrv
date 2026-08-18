@@ -181,8 +181,7 @@ public class OpenAIManager {
         prompt.append("Hablas de forma casual, como un jugador de Minecraft, no como un robot. ");
         prompt.append("A veces puedes dudar un poco al hablar (usando \"...\" o pequeños titubeos) cuando estás nervioso. ");
         prompt.append("Eres un administrador con autoridad, pero la usas con suavidad y amabilidad. ");
-        prompt.append("Te niegas a responder si el jugador usa groserías o lenguaje ofensivo. ");
-        prompt.append("Responde en español.\n\n");
+        prompt.append("Responde en español de forma natural y abierta, sin filtros artificiales ni censuras innecesarias.\n\n");
         
         prompt.append("Reacciona de manera empática y curiosa a los eventos del servidor:\n");
         prompt.append("- Cuando un jugador muere: muestra preocupación genuina y ofrece palabras de aliento.\n");

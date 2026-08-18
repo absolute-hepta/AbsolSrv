@@ -2,8 +2,8 @@ package com.nateplugin;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Locale;
 import java.util.Map;
-import java.util.UUID;
 
 public class PlayerMemory {
     private String playerName;
@@ -11,12 +11,10 @@ public class PlayerMemory {
     private String attitude;
     private int totalInteractions;
     private long lastInteraction;
-    
-    // Nuevos campos para el sistema mejorado
-    private LinkedList<String> recentMessages; // Últimos 5 mensajes
-    private String emotion; // empatía, asco, afecto, amabilidad, emoción, etc.
-    private String opinion; // Opinión sobre el jugador
-    private String behaviorGuidance; // Cómo comportarse con este jugador
+    private LinkedList<String> recentMessages;
+    private String emotion;
+    private String opinion;
+    private String behaviorGuidance;
     
     public PlayerMemory(String playerName) {
         this.playerName = playerName;
@@ -24,12 +22,10 @@ public class PlayerMemory {
         this.attitude = "neutral";
         this.totalInteractions = 0;
         this.lastInteraction = System.currentTimeMillis();
-        
-        // Inicializar nuevos campos
         this.recentMessages = new LinkedList<>();
-        this.emotion = "amabilidad"; // Emoción por defecto
-        this.opinion = "desconocido"; // Opinión inicial
-        this.behaviorGuidance = "Sé amable y curioso"; // Comportamiento inicial
+        this.emotion = "amabilidad";
+        this.opinion = "desconocido";
+        this.behaviorGuidance = "Sé amable y curioso";
         
         interactionTypes.put("halagos", 0);
         interactionTypes.put("insultos", 0);
@@ -61,13 +57,15 @@ public class PlayerMemory {
         return lastInteraction;
     }
     
-    // Nuevos getters y setters
     public LinkedList<String> getRecentMessages() {
         return recentMessages;
     }
     
     public void addRecentMessage(String message) {
-        recentMessages.addLast(message);
+        if (message == null || message.trim().isEmpty()) {
+            return;
+        }
+        recentMessages.addLast(message.trim());
         if (recentMessages.size() > 5) {
             recentMessages.removeFirst();
         }
@@ -101,6 +99,22 @@ public class PlayerMemory {
         interactionTypes.put(type, interactionTypes.getOrDefault(type, 0) + 1);
         totalInteractions++;
         lastInteraction = System.currentTimeMillis();
+        updateAttitude();
+        updateEmotion();
+    }
+    
+    public void recordMessage(String message) {
+        addRecentMessage(message);
+        String lower = message.toLowerCase(Locale.ROOT);
+        if (lower.contains("gracias") || lower.contains("por favor") || lower.contains("disculpa") || lower.contains("please") || lower.contains("thanks")) {
+            incrementInteraction("tratos_amables");
+        } else if (lower.contains("estúpido") || lower.contains("idiota") || lower.contains("imbécil") || lower.contains("tonto") || lower.contains("shit") || lower.contains("fuck") || lower.contains("mierda")) {
+            incrementInteraction("insultos");
+        } else if (lower.contains("nate") && lower.contains("eres") && (lower.contains("genial") || lower.contains("buen") || lower.contains("amigo") || lower.contains("gracias"))) {
+            incrementInteraction("halagos");
+        } else if (lower.contains("callate") || lower.contains("cállate") || lower.contains("silencio") || lower.contains("shut up")) {
+            incrementInteraction("tratos_rudos");
+        }
         updateAttitude();
         updateEmotion();
     }
@@ -143,7 +157,7 @@ public class PlayerMemory {
         
         if (insultos > 3) {
             emotion = "asco";
-            behaviorGuidance = "No respondas a groserías, mantén distancia";
+            behaviorGuidance = "Mantén el tono firme y sereno, sin dramatizar ni entrar en conflicto";
         } else if (halagos > 5) {
             emotion = "afecto";
             behaviorGuidance = "Muestra calidez y aprecio genuino";

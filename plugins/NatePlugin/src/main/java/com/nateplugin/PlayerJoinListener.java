@@ -1,20 +1,20 @@
 package com.nateplugin;
 
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.ChatColor;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 public class PlayerJoinListener implements Listener {
     
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        
-        // Verificar si es un jugador nuevo (no tiene memoria en Nate)
+        NatePlugin.getInstance().notifyPlayerJoin(player);
+
         if (!MemoryManager.getInstance().getAllMemories().containsKey(player.getUniqueId())) {
-            // Mensaje de bienvenida con instrucciones
             player.sendMessage(ChatColor.translateAlternateColorCodes('&', ""));
             player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&6=== Bienvenido al servidor con Nate ==="));
             player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Nate es un admin artificial con personalidad tímida y empática."));
@@ -33,5 +33,11 @@ public class PlayerJoinListener implements Listener {
             player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7*Nate responde con timidez y empatía...*"));
             player.sendMessage(ChatColor.translateAlternateColorCodes('&', ""));
         }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        NatePlugin.getInstance().notifyPlayerQuit(player);
     }
 }

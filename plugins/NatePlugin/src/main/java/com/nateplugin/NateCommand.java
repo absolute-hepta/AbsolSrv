@@ -1,10 +1,10 @@
 package com.nateplugin;
 
+import org.bukkit.BanList;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.ChatColor;
-import org.bukkit.entity.Player;
 
 import java.util.Arrays;
 
@@ -14,14 +14,34 @@ public class NateCommand implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cUso: /nate <on|off|apikey|status|model|suggest>"));
+            sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cUso: /nate <on|off|self|apikey|status|model|banlist|pardon|suggest>"));
             return true;
         }
         
         switch (args[0].toLowerCase()) {
+            case "self":
+            case "me":
+                if (!(sender instanceof org.bukkit.entity.Player player)) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cEste comando solo puede usarse por un jugador."));
+                    return true;
+                }
+                if (args.length < 2 || (!args[1].equalsIgnoreCase("on") && !args[1].equalsIgnoreCase("off") && !args[1].equalsIgnoreCase("toggle"))) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Uso: /nate self <on|off|toggle>"));
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("toggle")) {
+                    NatePlugin.getInstance().toggleNateForPlayer(player);
+                    boolean enabled = NatePlugin.getInstance().isNateEnabledForPlayer(player);
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', enabled ? "&aNate está habilitado para ti." : "&cNate está deshabilitado para ti. Ya no contarás como mención."));
+                    return true;
+                }
+                boolean enabled = args[1].equalsIgnoreCase("on");
+                NatePlugin.getInstance().setNateEnabledForPlayer(player, enabled);
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', enabled ? "&aNate ha sido habilitado para ti." : "&cNate ha sido deshabilitado para ti. Ya no contarás como mención."));
+                return true;
             case "on":
-                if (!sender.hasPermission("nate.use")) {
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cNo tienes permiso para usar este comando."));
+                if (!NatePlugin.getInstance().isAdmin(sender)) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cSolo los OP pueden configurar a Nate. Puedes hablar con él por /chat o mencionándole en el chat."));
                     return true;
                 }
                 
@@ -35,8 +55,8 @@ public class NateCommand implements CommandExecutor {
                 return true;
                 
             case "off":
-                if (!sender.hasPermission("nate.use")) {
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cNo tienes permiso para usar este comando."));
+                if (!NatePlugin.getInstance().isAdmin(sender)) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cSolo los OP pueden configurar a Nate."));
                     return true;
                 }
                 
@@ -45,8 +65,8 @@ public class NateCommand implements CommandExecutor {
                 return true;
                 
             case "apikey":
-                if (!sender.hasPermission("nate.use")) {
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cNo tienes permiso para usar este comando."));
+                if (!NatePlugin.getInstance().isAdmin(sender)) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cSolo los OP pueden configurar la API de Nate."));
                     return true;
                 }
                 
@@ -64,19 +84,19 @@ public class NateCommand implements CommandExecutor {
                 return true;
                 
             case "status":
-                boolean enabled = NatePlugin.getInstance().isNateEnabled();
+                boolean statusEnabled = NatePlugin.getInstance().isNateEnabled();
                 boolean hasKey = !NatePlugin.getInstance().getApiKey().isEmpty();
                 String currentModel = NatePlugin.getInstance().getModel();
                 
                 sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&6=== Estado de Nate ==="));
-                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Estado: " + (enabled ? "&aActivado" : "&cDesactivado")));
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Estado: " + (statusEnabled ? "&aActivado" : "&cDesactivado")));
                 sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7API Key: " + (hasKey ? "&aConfigurada" : "&cNo configurada")));
                 sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Modelo actual: &f" + currentModel));
                 return true;
                 
             case "model":
-                if (!sender.hasPermission("nate.use")) {
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cNo tienes permiso para usar este comando."));
+                if (!NatePlugin.getInstance().isAdmin(sender)) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cSolo los OP pueden cambiar el modelo de Nate."));
                     return true;
                 }
                 
@@ -104,7 +124,6 @@ public class NateCommand implements CommandExecutor {
                                     sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&6=== Modelos disponibles (OpenRouter) ==="));
                                     sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&a✓ = Gratis | &c✗ = Pago"));
                                     
-                                    // Mostrar solo los primeros 15 modelos para no saturar el chat
                                     int limit = Math.min(models.size(), 15);
                                     for (int i = 0; i < limit; i++) {
                                         String model = models.get(i);
@@ -143,6 +162,41 @@ public class NateCommand implements CommandExecutor {
                 sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aModelo cambiado a: &f" + model + " &7... espero que funcione bien..."));
                 return true;
                 
+            case "banlist":
+                if (!NatePlugin.getInstance().isAdmin(sender)) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cSolo los OP pueden revisar la lista de bans."));
+                    return true;
+                }
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&6=== Ban list ==="));
+                var entries = NatePlugin.getInstance().getServer().getBanList(BanList.Type.NAME).getBanEntries();
+                if (entries.isEmpty()) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7No hay baneos activos en este momento."));
+                    return true;
+                }
+                for (var entry : entries) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7- &f" + entry.getTarget() + " &8| &7" + entry.getReason()));
+                }
+                return true;
+                
+            case "pardon":
+                if (!NatePlugin.getInstance().isAdmin(sender)) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cSolo los OP pueden perdonar baneos."));
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cUso: /nate pardon <jugador>"));
+                    return true;
+                }
+                String target = args[1];
+                var banList = NatePlugin.getInstance().getServer().getBanList(BanList.Type.NAME);
+                if (banList.isBanned(target)) {
+                    banList.pardon(target);
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aEl jugador &f" + target + " &aha sido perdonado."));
+                } else {
+                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7El jugador &f" + target + " &7no tiene un baneo activo."));
+                }
+                return true;
+                
             case "suggest":
                 if (!sender.hasPermission("nate.use")) {
                     sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cNo tienes permiso para usar este comando."));
@@ -155,8 +209,7 @@ public class NateCommand implements CommandExecutor {
                     return true;
                 }
                 
-                // Unir todos los argumentos después de "suggest"
-                String suggestionText = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length));
+                String suggestionText = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
                 String playerName = sender.getName();
                 
                 SuggestionManager.getInstance().addSuggestion(playerName, suggestionText);
@@ -166,13 +219,12 @@ public class NateCommand implements CommandExecutor {
                 return true;
                 
             default:
-                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cUso: /nate <on|off|apikey|status|model|suggest>"));
+                sender.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cUso: /nate <on|off|apikey|status|model|banlist|pardon|suggest>"));
                 return true;
         }
     }
     
     private boolean isFreeModel(String model) {
-        // En OpenRouter, los modelos gratuitos tienen ":free" al final
         return model.contains(":free");
     }
 }

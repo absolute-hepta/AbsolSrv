@@ -1,14 +1,14 @@
 package com.nateplugin;
 
-import org.bukkit.entity.Player;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerAdvancementDoneEvent;
-import org.bukkit.ChatColor;
 
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 public class NateListener implements Listener {
     
     private static final Pattern[] HALAGO_PATTERNS = {
-        Pattern.compile("(?i)\\b(bueno|buena|genial|increíble|amazing|awesome|cool|gracias|thanks|thanks|perfecto|perfecta|excelente|me gusta|te quiero|te amo|buen trabajo|good job)\\b"),
+        Pattern.compile("(?i)\\b(bueno|buena|genial|increíble|amazing|awesome|cool|gracias|thanks|perfecto|perfecta|excelente|me gusta|te quiero|te amo|buen trabajo|good job)\\b"),
         Pattern.compile("(?i)\\b(eres el mejor|eres la mejor|crack|pro|maestro|master)\\b"),
         Pattern.compile("(?i)\\b(nate eres|nate es)\\s*(bueno|buena|genial|increíble|amazing|awesome|cool)\\b")
     };
@@ -33,7 +33,7 @@ public class NateListener implements Listener {
     };
     
     private static final Pattern[] TRATO_RUDO_PATTERNS = {
-        Pattern.compile("(?i)\\b(callate|cállate|cállate|shut up)\\b"),
+        Pattern.compile("(?i)\\b(callate|cállate|shut up)\\b"),
         Pattern.compile("(?i)\\b(nate haz|nate hazlo|nate haz)\\s*(ahora|ya|rápido)\\b")
     };
     
@@ -42,29 +42,40 @@ public class NateListener implements Listener {
         if (!NatePlugin.getInstance().isNateEnabled()) {
             return;
         }
-        
+
         Player player = event.getPlayer();
         UUID playerUUID = player.getUniqueId();
         String message = event.getMessage();
-        
+
         if (message.toLowerCase().startsWith("/nate") || message.toLowerCase().startsWith("/chat")) {
             return;
         }
-        
-        // Sistema público: si menciona "Nate"
-        if (message.toLowerCase().contains("nate")) {
-            analyzeAndRecordInteraction(playerUUID, player.getName(), message);
-            
-            // NO cancelar el evento, permitir que el mensaje se envíe normalmente
-            // Nate responderá después
-            
-            String fullMessage = "El jugador " + player.getName() + " te menciona en el chat: " + message;
-            
+
+        if (NatePlugin.getInstance().processAdminBanOrder(player, message)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        event.setMessage(NatePlugin.getInstance().colorNateMentions(message));
+
+        String normalizedMessage = event.getMessage();
+        MemoryManager.getInstance().recordPlayerMessage(playerUUID, player.getName(), normalizedMessage);
+        analyzeAndRecordInteraction(playerUUID, player.getName(), normalizedMessage);
+        SceneManager.getInstance().trackConversation(player, normalizedMessage);
+
+        boolean mentionedNate = NatePlugin.getInstance().isNateEnabledForPlayer(player) && NatePlugin.getInstance().isNateMentioned(normalizedMessage);
+
+        if (mentionedNate) {
+            String fullMessage = "El jugador " + player.getName() + " te menciona en el chat: " + normalizedMessage;
+            NatePlugin.getInstance().broadcastThinkingAlert();
+            NatePlugin.getInstance().showThinking(player);
+
             OpenAIManager.getInstance().generateResponse(playerUUID, player.getName(), fullMessage)
                 .thenAccept(response -> {
                     NatePlugin.getInstance().getServer().getScheduler().runTask(
                         NatePlugin.getInstance(),
                         () -> {
+                            NatePlugin.getInstance().stopThinking(player);
                             String formattedResponse = ChatColor.translateAlternateColorCodes('&', "&7[Nate] &f" + response);
                             NatePlugin.getInstance().getServer().broadcastMessage(formattedResponse);
                         }
@@ -74,6 +85,7 @@ public class NateListener implements Listener {
                     NatePlugin.getInstance().getServer().getScheduler().runTask(
                         NatePlugin.getInstance(),
                         () -> {
+                            NatePlugin.getInstance().stopThinking(player);
                             player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cLo siento... tuve un problema al responder..."));
                             player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Error: " + ex.getMessage()));
                         }
@@ -81,21 +93,19 @@ public class NateListener implements Listener {
                     return null;
                 });
         }
-        
-        // Si hay solo un jugador, Nate responde a todo (modo privado automático)
+
         int onlinePlayers = NatePlugin.getInstance().getServer().getOnlinePlayers().size();
-        if (onlinePlayers == 1 && !message.toLowerCase().contains("nate")) {
-            analyzeAndRecordInteraction(playerUUID, player.getName(), message);
-            
-            // NO cancelar el evento, permitir que el mensaje se envíe normalmente
-            
-            String fullMessage = "Eres el único jugador en el servidor. El jugador " + player.getName() + " dice: " + message;
-            
+        if (onlinePlayers == 1 && !mentionedNate) {
+            String fullMessage = "Eres el único jugador en el servidor. El jugador " + player.getName() + " dice: " + normalizedMessage;
+            NatePlugin.getInstance().broadcastThinkingAlert();
+            NatePlugin.getInstance().showThinking(player);
+
             OpenAIManager.getInstance().generateResponse(playerUUID, player.getName(), fullMessage)
                 .thenAccept(response -> {
                     NatePlugin.getInstance().getServer().getScheduler().runTask(
                         NatePlugin.getInstance(),
                         () -> {
+                            NatePlugin.getInstance().stopThinking(player);
                             String formattedResponse = ChatColor.translateAlternateColorCodes('&', "&7[Nate] &f" + response);
                             NatePlugin.getInstance().getServer().broadcastMessage(formattedResponse);
                         }
@@ -105,6 +115,7 @@ public class NateListener implements Listener {
                     NatePlugin.getInstance().getServer().getScheduler().runTask(
                         NatePlugin.getInstance(),
                         () -> {
+                            NatePlugin.getInstance().stopThinking(player);
                             player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&cLo siento... tuve un problema al responder..."));
                             player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&7Error: " + ex.getMessage()));
                         }
@@ -134,16 +145,6 @@ public class NateListener implements Listener {
     
     private static boolean containsPatternStatic(String message, Pattern[] patterns) {
         for (Pattern pattern : patterns) {
-            java.util.regex.Matcher matcher = pattern.matcher(message);
-            if (matcher.find()) {
-                return true;
-            }
-        }
-        return false;
-    }
-    
-    private boolean containsPattern(String message, Pattern[] patterns) {
-        for (Pattern pattern : patterns) {
             Matcher matcher = pattern.matcher(message);
             if (matcher.find()) {
                 return true;
@@ -172,12 +173,10 @@ public class NateListener implements Listener {
                         String formattedResponse = ChatColor.translateAlternateColorCodes('&', "&7[Nate] &f" + response);
                         NatePlugin.getInstance().getServer().broadcastMessage(formattedResponse);
                     },
-                    20L // 1 segundo de delay
+                    20L
                 );
             })
-            .exceptionally(ex -> {
-                return null;
-            });
+            .exceptionally(ex -> null);
     }
     
     @EventHandler
@@ -185,8 +184,6 @@ public class NateListener implements Listener {
         if (!NatePlugin.getInstance().isNateEnabled()) {
             return;
         }
-        
-        // Solo procesar si fue un jugador quien mató a la entidad
         if (event.getEntity().getKiller() == null) {
             return;
         }
@@ -206,12 +203,10 @@ public class NateListener implements Listener {
                         String formattedResponse = ChatColor.translateAlternateColorCodes('&', "&7[Nate] &f" + response);
                         NatePlugin.getInstance().getServer().broadcastMessage(formattedResponse);
                     },
-                    20L // 1 segundo de delay
+                    20L
                 );
             })
-            .exceptionally(ex -> {
-                return null;
-            });
+            .exceptionally(ex -> null);
     }
     
     @EventHandler
@@ -234,11 +229,9 @@ public class NateListener implements Listener {
                         String formattedResponse = ChatColor.translateAlternateColorCodes('&', "&7[Nate] &f" + response);
                         NatePlugin.getInstance().getServer().broadcastMessage(formattedResponse);
                     },
-                    20L // 1 segundo de delay
+                    20L
                 );
             })
-            .exceptionally(ex -> {
-                return null;
-            });
+            .exceptionally(ex -> null);
     }
 }

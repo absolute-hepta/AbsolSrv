@@ -30,10 +30,7 @@ public class MemoryManager {
     }
     
     public PlayerMemory getPlayerMemory(UUID playerUUID) {
-        return playerMemories.computeIfAbsent(playerUUID, uuid -> {
-            // Cargar desde archivo si existe
-            return new PlayerMemory("Unknown");
-        });
+        return playerMemories.computeIfAbsent(playerUUID, uuid -> new PlayerMemory("Unknown"));
     }
     
     public PlayerMemory getPlayerMemory(UUID playerUUID, String playerName) {
@@ -43,6 +40,12 @@ public class MemoryManager {
     public void recordInteraction(UUID playerUUID, String playerName, String interactionType) {
         PlayerMemory memory = getPlayerMemory(playerUUID, playerName);
         memory.incrementInteraction(interactionType);
+        saveMemories();
+    }
+    
+    public void recordPlayerMessage(UUID playerUUID, String playerName, String message) {
+        PlayerMemory memory = getPlayerMemory(playerUUID, playerName);
+        memory.recordMessage(message);
         saveMemories();
     }
     
