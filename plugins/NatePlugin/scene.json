@@ -2,8 +2,16 @@
   "currentConversation": "general",
   "flow": [
     "general",
-    "chat:Hazle tp"
+    "chat:Hazle tp",
+    "chat:ami",
+    "chat:naaa",
+    "chat:Hazle tp ami",
+    "chat:te mato un zombi xd",
+    "chat:sale que tu fuistes ",
+    "chat:OmniXautral",
+    "chat:hazlo tp ami",
+    "chat:ya"
   ],
   "detail": "La conversación cambió y el flujo fue reiniciado.",
-  "lastUpdated": 1787065275419
+  "lastUpdated": 1787065319007
 }
