@@ -1,6 +1,0 @@
-nate:
-  enabled: false
-  apikey: ""
-  provider: "openrouter"
-  apiBaseUrl: "https://openrouter.ai/api/v1"
-  model: "meta-llama/llama-3.3-70b-instruct:free"
