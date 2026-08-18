@@ -1745,3 +1745,26 @@
 1786998691374:/tellraw @a [{"text": "<Nate> ", "color": "white"}, {"text": "construccion. Recuerdo que habias estado ", "color": "white"}]
 1786998691993:/tellraw @a [{"text": "<Nate> ", "color": "white"}, {"text": "trabajando en un templo en la isla del", "color": "white"}]
 1787024853366:stop
+1787063777170:whitelist off
+1787063872142:say hola _elXD0X_10
+1787063878990:say a que no sabes quien está
+1787063882678:say tuve que nerferalo
+1787063887714:say ahorita me conceto para enseñarte
+1787063899518:say a eso voy
+1787063916590:say ahoorita te las repongo
+1787063939873:say masomenos
+1787063978715:say usa /nate
+1787063991174:say o simplemente ecribe al aire "Oye, Nate, cuanto es 2 + 2?"
+1787064003820:say que te sale?
+1787064013084:say usa /chat [mensaje]
+1787064040060:say si te respondió?
+1787064049082:say o q te salió
+1787064066649:say ya veo
+1787064069160:say ahorita lo resuelvo
+1787064072956:say mientras usa el global
+1787064083076:/nate on
+1787064086876:say ahh ya
+1787064090435:say no tengo la api Key
+1787064101235:say no te preocupes
+1787064104378:say deja lo configuro
+1787064253822:say ya me estoy metiendo

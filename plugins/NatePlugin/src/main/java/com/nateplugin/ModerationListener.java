@@ -14,9 +14,8 @@ import java.util.regex.Pattern;
 public class ModerationListener implements Listener {
     
     private static final Pattern LINK_PATTERN = Pattern.compile(
-        "(https?://(?:www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%_\\+.~#?&/=]*)|" +
-        "(www\\.[a-zA-Z0-9-]+\\.[a-zA-Z]{2,}(?:/\\S*)?)|" +
-        "([a-zA-Z0-9-]+\\.(com|net|org|io|gg|xyz|tk|ml)(?:/\\S*)?)",
+        "(?i)((https?://)?(www\\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%_+.~#?&/=]*)|"
+        + "(https?://)?([a-zA-Z0-9-]+\\.)+(com|net|org|io|gg|xyz|tk|ml)(?:/\\S*)?)",
         Pattern.CASE_INSENSITIVE
     );
     

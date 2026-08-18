@@ -1,0 +1,9 @@
+{
+  "currentConversation": "general",
+  "flow": [
+    "general",
+    "chat:Hazle tp"
+  ],
+  "detail": "La conversación cambió y el flujo fue reiniciado.",
+  "lastUpdated": 1787065275419
+}
