@@ -1,0 +1,16 @@
+name: NatePlugin
+version: 1.0.0
+main: com.nateplugin.NatePlugin
+api-version: 1.20
+author: Dev
+description: IA Nate - Admin artificial con personalidad tímida y empática
+
+commands:
+  nate:
+    description: Comandos para controlar a Nate
+    usage: /nate <on|off|apikey|status|model|suggest>
+    permission: nate.use
+  chat:
+    description: Habla en privado con Nate
+    usage: /chat <mensaje>
+    permission: nate.use

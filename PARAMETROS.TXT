@@ -4,6 +4,7 @@ sudo playit --socket-path /run/playit/playitd.sock
 
 java -Xms8G -Xmx12G -Dcom.mojang.eula.agree=true -jar server.jar --nogui --bonusChest
 
+
 git add -A && git commit -m "Actualización general" && git push origin main
 git commit -m "Changes I" [I]
 git push origin main
